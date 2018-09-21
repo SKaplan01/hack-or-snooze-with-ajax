@@ -22,6 +22,6 @@ input,
 textarea {
   background-color: white;
 }
-.hidden-favorites {
+.hidden-item {
   display: none;
 }

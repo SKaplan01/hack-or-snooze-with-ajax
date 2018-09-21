@@ -34,9 +34,41 @@
               <input class="form-control mr-sm-2" type="text" placeholder="password" aria-label="password" id="password">
               <input class="btn btn-outline-success my-2 my-2m-0" type="submit" value="Login" id="login">
             </form>
+            <button class="btn btn-outline-info my-2 my-2m-0 ml-2 hidden-item" data-toggle="modal" data-target="#profile-modal" id="view-profile">View Profile</button>
             <button class="btn btn-outline-dark my-2 my-2m-0 ml-2" id="signup">Sign-up</button>
         </div>
     </nav>
+
+    <div class="modal" tabindex="-1" role="dialog" id="profile-modal">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Profile</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                <div id='profile-div'>
+                     <p>Name: <span id='profile-name'></span></p>
+                     <p>Username: <span id='profile-username'></span></p>
+                </div>
+                <form action="" id="edit-profile-form" class='hidden-item'>
+                    <label for="name" class="col-1 col-form-label text-center">Name</label>
+                    <input class="form-control mr-sm-2" type="text" placeholder="" aria-label="name" id="edit-name">
+                    <label for="new-password" class="col-1 col-form-label text-center">New Password</label>
+                    <input class="form-control mr-sm-2" type="text" placeholder="" aria-label="new-password" id="edit-new-password">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="edit-profile">Edit Profile</button>
+                <button type="button" class="btn btn-primary hidden-item" id="save-profile" data-toggle="modal" data-target="#profile-modal">Save changes</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <form id="signup-form" style="display: none">
         <div class="form-group d-flex row justify-content-start">
             <label for="name-input" class="col-1 col-form-label text-center">Name</label>

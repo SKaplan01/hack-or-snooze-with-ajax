@@ -21,13 +21,47 @@ $(document).ready(function() {
     );
     currentUser = new User(decryptedToken.username);
     currentUser.loginToken = localStorage.getItem('token');
-    //retreiveDetails on next line not working (new User does not get updated with favorites, ownstories, etc)
     currentUser.retrieveDetails(resp => displayStoryList());
+    $('#login-form').addClass('hidden-item');
+    $('#view-profile').removeClass('hidden-item');
   } else {
     displayStoryList();
   }
 
   //these event listeners should be on the page whether a user is logged in or not
+  $('#view-profile').on('click', () => {
+    $('#profile-name').text(`${currentUser.name}`);
+    $('#profile-username').text(`${currentUser.username}`);
+  });
+
+  $('#edit-profile').on('click', () => {
+    $('#edit-profile-form').removeClass('hidden-item');
+    $('#save-profile').removeClass('hidden-item');
+    $('#edit-profile').addClass('hidden-item');
+    $('#profile-div').addClass('hidden-item');
+    $('#edit-name').attr('placeholder', `${currentUser.name}`);
+    $('#edit-current-password').attr(
+      'placeholder',
+      `Please enter your current password`
+    );
+    $('#edit-new-password').attr('placeholder', `Please enter new password`);
+  });
+
+  $('#save-profile').on('click', () => {
+    let name = currentUser.name;
+    let password = $('#edit-password').val();
+    if ($('#edit-name').val()) {
+      name = $('#edit-name').val();
+    }
+    let dataObject = {
+      name,
+      password
+    };
+    currentUser.update(dataObject, resp => {
+      currentUser.retrieveDetails(() => {});
+    });
+  });
+
   $('#signup').on('click', () => {
     $('#signup-form').slideToggle();
   });
@@ -40,6 +74,19 @@ $(document).ready(function() {
     } else {
       alert('Please log in to view your favorite stories.');
     }
+  });
+
+  $('#my-stories').on('click', () => {
+    if (currentUser) {
+      populateMyStories();
+    } else {
+      alert('Please login to view your stories.');
+    }
+    $('#story-list').on('click', '.fa-trash-alt', () => {
+      currentStoryList.removeStory(currentUser, event.target.id, () => {
+        populateMyStories();
+      });
+    });
   });
 
   $('#home-button').on('click', () => {
@@ -97,6 +144,8 @@ function login() {
     enableSubmitStory();
     $('#login-form').trigger('reset');
   });
+  $('#login-form').addClass('hidden-item');
+  $('#view-profile').removeClass('hidden-item');
 }
 function createStory() {
   event.preventDefault();
@@ -128,8 +177,8 @@ function enableFavorites() {
       .parent()
       .toggleClass('favorites');
   });
-  $('ol').on('click', '.far', addFavorite);
-  $('ol').on('click', '.fas', removeFavorite);
+  $('ol').on('click', '.far.fa-star', addFavorite);
+  $('ol').on('click', '.fas.fa-star', removeFavorite);
 }
 
 //called if a user is logged in, shows submit form
@@ -211,4 +260,37 @@ function populateRegularList() {
       }
     }
   });
+}
+//create function to check if favorite - seperate functions;
+function populateMyStories() {
+  let myStories = currentUser.ownStories;
+  let starClass = 'far fa-star pr-2';
+  $('#story-list').empty();
+  for (let i = 0; i < myStories.length; i++) {
+    for (let j = 0; j < currentUser.favorites.length; j++) {
+      if (currentUser.favorites[j].storyId === myStories[i].storyId) {
+        starClass = 'fas fa-star pr-2';
+      }
+    }
+    let fullUrl = myStories[i].url;
+    let listItem = $(`<li></li>`);
+    let trashCan = $(
+      `<i class="fas fa-trash-alt pl-2" id='${myStories[i].storyId}'</i>`
+    );
+    let star = $(`<i id=${myStories[i].storyId} class='${starClass}'><i>`);
+    let smallTag = $(`<small class='pl-2'></small>`);
+    listItem.append(star);
+    let favoritesTitle = myStories[i].title;
+    let articleLink = $(`<a href=${fullUrl}></a>`);
+    let span = $('<span></span>');
+    span.append(favoritesTitle);
+    articleLink.append(span);
+    listItem.append(articleLink);
+    let favoritesUrl = myStories[i].url;
+    smallTag.append(favoritesUrl);
+    listItem.append(smallTag);
+    listItem.append(trashCan);
+    $('#story-list').append(listItem);
+    starClass = 'far fa-star pr-2';
+  }
 }
