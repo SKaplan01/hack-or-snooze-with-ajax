@@ -21,10 +21,11 @@ $(document).ready(function() {
     );
     currentUser = new User(decryptedToken.username);
     currentUser.loginToken = localStorage.getItem('token');
-    currentUser.retrieveDetails(resp => console.log(resp));
+    //retreiveDetails on next line not working (new User does not get updated with favorites, ownstories, etc)
+    currentUser.retrieveDetails(resp => displayStoryList());
+  } else {
+    displayStoryList();
   }
-
-  displayStoryList();
 
   //these event listeners should be on the page whether a user is logged in or not
   $('#signup').on('click', () => {
@@ -34,9 +35,16 @@ $(document).ready(function() {
   $('#login-form').on('submit', login);
 
   $('#favorites').on('click', () => {
-    let favorites = currentUser.favorites;
-    //needs to be fixed (shouldn't be a filter that turns on and off, a separate list)
-    $('#story-list li:not(.favorites)').toggleClass('li hidden-favorites');
+    if (currentUser) {
+      populateFavorites();
+    } else {
+      alert('Please log in to view your favorite stories.');
+    }
+  });
+
+  $('#home-button').on('click', () => {
+    $('#story-list').empty();
+    populateRegularList();
   });
 });
 
@@ -46,42 +54,18 @@ function getHostname(url) {
   url = url.replace('www.', '');
   return url.split('/')[0];
 }
-function displayStoryList() {
-  StoryList.getStories(function(storyList) {
-    currentStoryList = storyList;
-    for (let i = 0; i < storyList.stories.length; i++) {
-      let listItem = $(`<li></li>`);
-      let star = $(`<i id=${i} class='far fa-star pr-2'><i>`);
-      let smallTag = $(`<small class='pl-2'></small>`);
-      listItem.append(star);
-      listItem.append(storyList.stories[i].title);
-      let url = getHostname(storyList.stories[i].url);
-      smallTag.append(url);
-      listItem.append(smallTag);
-      $('#story-list').append(listItem);
 
-      //this is not working (I checked with story ID's that === true, but wasn't starred)
-      //currentStoryList.stories[0].storyId === currentUser.favorites[18].storyId
-      //it DOES show already favorited stories on refresh, but not right after user logs in
-      //second refresh clears the stars
-      if (currentUser) {
-        for (let j = 0; j < currentUser.favorites.length; j++) {
-          if (
-            currentUser.favorites[j].storyId === storyList.stories[i].storyId
-          ) {
-            star.removeClass('far');
-            star.addClass('fas');
-          }
-        }
-      }
-    }
-    if (currentUser) {
-      enableFavorites();
-      enableSubmitStory();
-      //NEED to REMOVE: can't log in if already logged in --> $('#login-form').on('submit', login);
-    }
-  });
+function displayStoryList() {
+  if (currentUser) {
+    populateRegularList();
+    enableFavorites();
+    enableSubmitStory();
+    //NEED to REMOVE: can't log in if already logged in --> $('#login-form').on('submit', login);
+  } else {
+    populateRegularList();
+  }
 }
+
 function signUp() {
   event.preventDefault();
   let username = $('#username-input').val();
@@ -105,7 +89,10 @@ function login() {
   currentUser.login(resp => {
     localStorage.setItem('token', currentUser.loginToken);
     // localStorage.setItem('currentUser', currentUser);
-    currentUser.retrieveDetails(resp => console.log(resp));
+    currentUser.retrieveDetails(resp => {
+      $('#story-list').empty();
+      displayStoryList();
+    });
     enableFavorites();
     enableSubmitStory();
     $('#login-form').trigger('reset');
@@ -126,6 +113,7 @@ function createStory() {
     console.log(resp);
   });
   $('#submit-form').trigger('reset');
+  $('#submit-form').slideToggle();
 }
 
 //called if a user is logged in
@@ -154,14 +142,73 @@ function enableSubmitStory() {
 }
 
 function addFavorite(event) {
-  let storyId = currentStoryList.stories[event.target.id].storyId;
+  let storyId = event.target.id;
   currentUser.addFavorite(storyId, resp => {
     console.log(resp);
   });
 }
 function removeFavorite(event) {
-  let storyId = currentStoryList.stories[event.target.id].storyId;
+  let storyId = event.target.id;
   currentUser.removeFavorite(storyId, resp => {
     console.log(resp);
+  });
+}
+
+function populateFavorites() {
+  let favorites = currentUser.favorites;
+  $('#story-list').empty();
+  for (let i = 0; i < favorites.length; i++) {
+    let fullUrl = favorites[i].url;
+    let listItem = $(`<li></li>`);
+    let star = $(`<i id=${favorites[i].storyId} class='fas fa-star pr-2'><i>`);
+    let smallTag = $(`<small class='pl-2'></small>`);
+    listItem.append(star);
+    let favoritesTitle = favorites[i].title;
+    let articleLink = $(`<a href=${fullUrl}></a>`);
+    let span = $('<span></span>');
+    span.append(favoritesTitle);
+    articleLink.append(span);
+    listItem.append(articleLink);
+    let favoritesUrl = favorites[i].url;
+    smallTag.append(favoritesUrl);
+    listItem.append(smallTag);
+    $('#story-list').append(listItem);
+  }
+}
+
+function populateRegularList() {
+  StoryList.getStories(function(storyList) {
+    currentStoryList = storyList;
+    for (let i = 0; i < storyList.stories.length; i++) {
+      let fullUrl = storyList.stories[i].url;
+      let listItem = $(`<li></li>`);
+      let star = $(
+        `<i id=${
+          currentStoryList.stories[i].storyId
+        } class='far fa-star pr-2'><i>`
+      );
+      let smallTag = $(`<small class='pl-2'></small>`);
+      let articleLink = $(`<a href=${fullUrl}></a>`);
+      let span = $('<span></span>');
+      listItem.append(star);
+      span.append(storyList.stories[i].title);
+      articleLink.append(span);
+      listItem.append(articleLink);
+      let url = getHostname(fullUrl);
+      smallTag.append(url);
+      listItem.append(smallTag);
+      $('#story-list').append(listItem);
+
+      if (currentUser) {
+        for (let j = 0; j < currentUser.favorites.length; j++) {
+          if (
+            currentUser.favorites[j].storyId === storyList.stories[i].storyId
+          ) {
+            star.removeClass('far');
+            star.addClass('fas');
+          }
+        }
+      }
+    }
   });
 }
